@@ -7,6 +7,9 @@ Timer2 used for internal Arduino PWM TIMER2_OVF_vect
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+uint8_t nLedDirection = 0;
+uint8_t nBit = 1;
+
 // Timer1 interrupt handler
 ISR(TIMER0_OVF_vect) {
   static uint16_t nCount = 0;
@@ -34,8 +37,14 @@ void Timer0_Init() {
 
 // Timer1 interrupt handler
 ISR(TIMER1_COMPA_vect) {
-  // Toggle PB5
-  // PORTB ^= (1 << PB5);
+  // shift left
+  PORTB ^= nBit;
+  nBit <<= 1;
+  // if PB5 is 1, reset to 1
+  if (nBit & (1 << 5)) {
+    nBit = 0x01;
+  }
+  PORTB |= nBit;
 }
 
 // Function to initialize Timer1 for interrupt every 1 second
@@ -55,12 +64,12 @@ void Timer1_Init() {
 
 // main function
 int main() {
-  int nBit = 1;
   // init DDRB as output
   DDRB = 0xFF;
   // init port B to 0 
   PORTB = nBit;
   Timer0_Init();
+  Timer1_Init();
   // Enable global interrupts
   sei();
 
@@ -68,14 +77,6 @@ int main() {
   while (1) {
     // wait 1 second
     _delay_ms(1000);
-    // shift left
-    PORTB ^= nBit;
-    nBit <<= 1;
-    // if PB5 is 1, reset to 1
-    if (nBit & (1 << 5)) {
-      nBit = 0x01;
-    }
-    PORTB |= nBit;
   }
   return 0;
 }
